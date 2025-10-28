@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CF Drag Drop by AR</title>
+  <style>
+    :root { --bg:#0f172a; --panel:#111827; --muted:#1f2937; --text:#e5e7eb; --accent:#22c55e; --accent2:#60a5fa; }
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,var(--bg),#0b1220);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    header{padding:18px 20px;border-bottom:1px solid #1f2937;background:rgba(17,24,39,.7);backdrop-filter: blur(6px);position:sticky;top:0;z-index:5}
+    h1{margin:0;font-size:18px;font-weight:700}
+    .sub{opacity:.8;font-size:12px}
+    .wrap{display:grid;grid-template-columns:300px 1fr;gap:16px;padding:16px}
+    @media (max-width: 900px){.wrap{grid-template-columns:1fr}}
+    .left,.right{background:var(--panel);border:1px solid #1f2937;border-radius:14px}
+    .left{display:flex;flex-direction:column;min-height:520px}
+    .drop{margin:12px;border:2px dashed #374151;border-radius:12px;display:flex;align-items:center;justify-content:center;min-height:120px;text-align:center;padding:18px;transition:.2s;cursor:pointer}
+    .drop.dragover{border-color:var(--accent);background:rgba(34,197,94,.06)}
+    .drop b{display:block;font-size:15px;margin-bottom:6px}
+    .btns{display:flex;gap:8px;flex-wrap:wrap;margin:8px 12px 12px}
+    button, .ghost-btn{appearance:none;border:1px solid #374151;background:#0b1220;color:var(--text);padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+    button.primary{background:linear-gradient(180deg,#22c55e,#16a34a);border-color:#15803d}
+    button.primary:disabled{filter:saturate(.2);opacity:.7;cursor:not-allowed}
+    .ghost-btn{border-style:dashed}
+    input[type=file]{display:none}
+    .list{flex:1;margin:0 12px 12px;overflow:auto;border-radius:10px;border:1px solid #1f2937;background:#0b1220}
+    .item{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px solid #111827}
+    .item:last-child{border-bottom:none}
+    .handle{width:14px;height:14px;mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="white" d="M10 4h4v4h-4V4zm0 6h4v4h-4v-4zm0 6h4v4h-4v-4z"/></svg>') no-repeat center/contain;background:#6b7280;cursor:grab}
+    .thumb{width:40px;height:54px;background:#111827;border:1px solid #1f2937;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .thumb canvas,.thumb img{max-width:100%;max-height:100%;display:block}
+    .name{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .meta{font-size:11px;opacity:.75}
+    .item .actions{display:flex;gap:6px}
+    .right{min-height:520px;display:flex;flex-direction:column}
+    .viewer{flex:1;overflow:auto;border-top:1px solid #1f2937;padding:8px 10px}
+    .toolbar{display:flex;gap:8px;align-items:center;padding:10px;border-bottom:1px solid #1f2937}
+    .pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+    .page canvas{width:100%;height:auto;display:block;border-radius:8px;border:1px solid #1f2937;background:#111827}
+    .hint{opacity:.75;font-size:12px;padding:8px 10px}
+    .pill{display:inline-flex;gap:6px;align-items:center;background:#0b1220;border:1px solid #374151;border-radius:999px;padding:6px 10px;font-size:12px}
+    .footer-note{padding:8px 12px;font-size:12px;opacity:.8}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ZIP / Images / PDFs → Merge into One PDF</h1>
+    <div class="sub">Drag a .zip of your files (or drop files directly), reorder, preview, and export a single PDF — all client‑side.</div>
+  </header>
+
+  <div class="wrap">
+    <section class="left">
+      <label class="drop" id="drop">
+        <input id="fileInput" type="file" accept=".zip,.pdf,image/*" multiple />
+        <div>
+          <b>Drop ZIP, PDFs, or Images here</b>
+          <div class="hint">Tip: dropping a ZIP will auto‑extract supported files (PDF, JPG, JPEG, PNG).</div>
+        </div>
+      </label>
+
+      <div class="btns">
+        <label class="ghost-btn">Choose Files<input id="pickBtn" type="file" accept=".zip,.pdf,image/*" multiple /></label>
+        <button id="clearBtn" class="ghost-btn" title="Remove all">Clear</button>
+        <span class="pill"><span id="count">0</span> file(s) queued</span>
+      </div>
+
+      <div class="list" id="list"></div>
+      <div class="footer-note">Drag items to reorder. Click a row to preview. Unsupported file types inside ZIPs are ignored.</div>
+    </section>
+
+    <section class="right">
+      <div class="toolbar">
+        <button id="mergeBtn" class="primary" disabled>Merge → Download PDF</button>
+        <button id="previewAllBtn" title="Render all pages of the selected item">Render Selected</button>
+        <span class="pill" id="selInfo">No selection</span>
+      </div>
+      <div class="viewer" id="viewer">
+        <div class="hint">Select an item from the left to see a quick preview here. For PDFs, <em>Render Selected</em> shows all pages.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" integrity="sha512-tqaIiFJopq4lTBmFlWF0MNzzTpDsHyug8tJaaY0VkcH5AR2ANMJlcD+3fIL+RQ4JU3K6edt9OoySKfCCyKgkng==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";</script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js" integrity="sha512-TelkP3PCMJv+viMWynjKcvLsQzx6dJHvIGhfqzFtZKgAjKM1YPqcwzzDEoTc/BHjf43PcPzTQOjuTr4YdE8lNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <script>
+  // --- State ---
+  const state = { items: [], selectedId: null };
+  const listEl = document.getElementById('list');
+  const dropEl = document.getElementById('drop');
+  const fileInput = document.getElementById('fileInput');
+  const pickBtn = document.getElementById('pickBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const countEl = document.getElementById('count');
+  const viewer = document.getElementById('viewer');
+  const selInfo = document.getElementById('selInfo');
+  const mergeBtn = document.getElementById('mergeBtn');
+  const previewAllBtn = document.getElementById('previewAllBtn');
+
+  const SUPPORTED_IMAGE_TYPES = ['image/jpeg','image/png'];
+  const A4 = { w: 595.28, h: 841.89 }; // PDF points
+
+  function uid(){ return 'id_' + Math.random().toString(36).slice(2,9); }
+
+  function updateCount(){ countEl.textContent = state.items.length; mergeBtn.disabled = state.items.length === 0; }
+
+  function extFromName(name){ return (name.split('.').pop()||'').toLowerCase(); }
+
+  function isSupportedImage(name, mime){ const e = extFromName(name); return SUPPORTED_IMAGE_TYPES.includes(mime) || ['jpg','jpeg','png'].includes(e); }
+
+  function isPdf(name, mime){ const e = extFromName(name); return mime === 'application/pdf' || e === 'pdf'; }
+
+  function blobFromArrayBuffer(buf, mime){ return new Blob([buf], {type: mime}); }
+
+  function objectURL(buf, mime){ return URL.createObjectURL(blobFromArrayBuffer(buf, mime)); }
+
+  function bytesToNice(n){ if(n<1024) return n+" B"; if(n<1048576) return (n/1024).toFixed(1)+" KB"; return (n/1048576).toFixed(1)+" MB"; }
+
+  function addItem({name, mime, buffer}){
+    const id = uid();
+    const type = isPdf(name, mime) ? 'pdf' : isSupportedImage(name, mime) ? 'image' : 'other';
+    if(type==='other') return false;
+    const size = buffer?.byteLength || 0;
+    const item = { id, name, mime: type==='pdf'?'application/pdf':(mime||''), type, buffer, size };
+    state.items.push(item);
+    renderList();
+    updateCount();
+    return true;
+  }
+
+  function clearAll(){ state.items.forEach(i=>i._url && URL.revokeObjectURL(i._url)); state.items = []; state.selectedId = null; renderList(); viewer.innerHTML = '<div class="hint">Queue is empty.</div>'; updateCount(); selInfo.textContent = 'No selection'; }
+
+  // --- List rendering & Sortable ---
+  function renderList(){
+    listEl.innerHTML = '';
+    state.items.forEach((item, idx)=>{
+      const row = document.createElement('div'); row.className='item'; row.dataset.id=item.id;
+      const drag = document.createElement('div'); drag.className='handle'; drag.title='Drag to reorder';
+      const thumb = document.createElement('div'); thumb.className='thumb';
+      const info = document.createElement('div');
+      const name = document.createElement('div'); name.className='name'; name.textContent = item.name;
+      const meta = document.createElement('div'); meta.className='meta'; meta.textContent = (item.type.toUpperCase()) + ' • ' + bytesToNice(item.size);
+      info.appendChild(name); info.appendChild(meta);
+      const actions = document.createElement('div'); actions.className='actions';
+      const del = document.createElement('button'); del.textContent='Remove'; del.onclick=()=>{ state.items = state.items.filter(x=>x.id!==item.id); if(state.selectedId===item.id){state.selectedId=null; viewer.innerHTML='<div class="hint">Select an item to preview.</div>'; selInfo.textContent='No selection';} renderList(); updateCount(); };
+      actions.appendChild(del);
+      row.appendChild(drag); row.appendChild(thumb); row.appendChild(info); row.appendChild(actions);
+      row.addEventListener('click', ()=> selectItem(item.id));
+      listEl.appendChild(row);
+      // Generate thumbnail async
+      thumbnailFor(item).then(el=>{ thumb.innerHTML=''; thumb.appendChild(el); }).catch(()=>{ thumb.textContent='—'; });
+    });
+
+    new Sortable(listEl, {
+      handle: '.handle',
+      animation: 150,
+      onEnd: (evt)=>{
+        const from = evt.oldIndex, to = evt.newIndex; if(from===to) return;
+        const arr = state.items; const [moved] = arr.splice(from,1); arr.splice(to,0,moved);
+      }
+    });
+  }
+
+  async function thumbnailFor(item){
+    if(item.type==='image'){
+      const img = document.createElement('img');
+      item._url = item._url || objectURL(item.buffer, item.mime||'image/png');
+      img.src = item._url; img.alt = item.name; return img;
+    }
+    if(item.type==='pdf'){
+      const loadingTask = pdfjsLib.getDocument({data:item.buffer});
+      const pdf = await loadingTask.promise; const page = await pdf.getPage(1);
+      const viewport = page.getViewport({scale:0.2});
+      const canvas = document.createElement('canvas'); canvas.width = viewport.width; canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({canvasContext:ctx, viewport}).promise;
+      return canvas;
+    }
+    const span = document.createElement('span'); span.textContent='?'; return span;
+  }
+
+  // --- Selection & Preview ---
+  function selectItem(id){
+    state.selectedId = id; const item = state.items.find(x=>x.id===id); if(!item) return;
+    selInfo.textContent = `${item.name} (${item.type.toUpperCase()})`;
+    quickPreview(item);
+  }
+
+  function quickPreview(item){
+    viewer.innerHTML='';
+    if(item.type==='image'){
+      const img = document.createElement('img');
+      item._url = item._url || objectURL(item.buffer, item.mime||'image/png');
+      img.src = item._url; img.style.maxWidth='100%'; img.style.border='1px solid #1f2937'; img.style.borderRadius='8px';
+      viewer.appendChild(img);
+    } else if(item.type==='pdf'){
+      // Render first page only (fast preview)
+      const info = document.createElement('div'); info.className='hint'; info.textContent='First page preview. Click "Render Selected" to render all pages here.'; viewer.appendChild(info);
+      (async()=>{
+        const loadingTask = pdfjsLib.getDocument({data:item.buffer});
+        const pdf = await loadingTask.promise; const page = await pdf.getPage(1);
+        const viewport = page.getViewport({scale:1.0});
+        const canvas = document.createElement('canvas'); canvas.width = viewport.width; canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d'); await page.render({canvasContext:ctx, viewport}).promise;
+        const wrap = document.createElement('div'); wrap.className='page'; wrap.appendChild(canvas); viewer.appendChild(wrap);
+      })().catch(err=>{ viewer.innerHTML = `<div class="hint">Failed to preview PDF: ${err.message}</div>`; });
+    }
+  }
+
+  previewAllBtn.addEventListener('click', async ()=>{
+    const item = state.items.find(x=>x.id===state.selectedId); if(!item){ alert('Select a file on the left.'); return; }
+    if(item.type==='image'){ quickPreview(item); return; }
+    viewer.innerHTML = '<div class="hint">Rendering all pages…</div>';
+    const loadingTask = pdfjsLib.getDocument({data:item.buffer});
+    const pdf = await loadingTask.promise; const pages = document.createElement('div'); pages.className='pages';
+    for(let i=1;i<=pdf.numPages;i++){
+      const page = await pdf.getPage(i); const viewport = page.getViewport({scale:0.9});
+      const canvas = document.createElement('canvas'); canvas.width = viewport.width; canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d'); await page.render({canvasContext:ctx, viewport}).promise;
+      const card = document.createElement('div'); card.className='page'; card.appendChild(canvas); pages.appendChild(card);
+    }
+    viewer.innerHTML=''; viewer.appendChild(pages);
+  });
+
+  // --- Drag & Drop / File Intake ---
+  function wireDropZone(el, input){
+    const onFiles = files => handleFileList(files);
+    el.addEventListener('dragover', e=>{ e.preventDefault(); el.classList.add('dragover'); });
+    el.addEventListener('dragleave', ()=> el.classList.remove('dragover'));
+    el.addEventListener('drop', async e=>{
+      e.preventDefault(); el.classList.remove('dragover');
+      const dt = e.dataTransfer;
+      if(dt.items){
+        const fileEntries = [];
+        for(const item of dt.items){ if(item.kind==='file'){ fileEntries.push(item.getAsFile()); } }
+        await handleFileList(fileEntries);
+      } else if(dt.files){ await handleFileList(dt.files); }
+    });
+    input.addEventListener('change', async e=>{ await handleFileList(e.target.files); input.value=''; });
+  }
+
+  async function handleFileList(fileList){
+    const files = Array.from(fileList||[]);
+    for(const file of files){
+      const name = file.name; const mime = file.type || '';
+      const buf = await file.arrayBuffer();
+      if(isZip(name, mime)){
+        const added = await importZip(buf);
+        if(added===0) console.warn('No supported files found inside ZIP');
+      } else {
+        addItem({name, mime, buffer:buf});
+      }
+    }
+    updateCount();
+  }
+
+  function isZip(name, mime){ const e = extFromName(name); return e==='zip' || mime==='application/zip' || mime==='application/x-zip-compressed'; }
+
+  async function importZip(arrayBuffer){
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    let added = 0;
+    const entries = Object.values(zip.files).filter(f=>!f.dir);
+    // Natural-alphanumeric sort for nicer ordering
+    entries.sort((a,b)=> a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
+    for(const f of entries){
+      const e = extFromName(f.name);
+      if(['pdf','jpg','jpeg','png'].includes(e)){
+        const buf = await f.async('arraybuffer');
+        const mime = e==='pdf' ? 'application/pdf' : (e==='png'?'image/png':'image/jpeg');
+        if(addItem({name: basename(f.name), mime, buffer: buf})) added++;
+      }
+    }
+    return added;
+  }
+
+  function basename(p){ return p.split('/').pop(); }
+
+  // --- Merge to one PDF ---
+  mergeBtn.addEventListener('click', async ()=>{
+    mergeBtn.disabled = true; mergeBtn.textContent = 'Merging…';
+    try{
+      const outPdf = await PDFLib.PDFDocument.create();
+      for(const item of state.items){
+        if(item.type==='pdf'){
+          const src = await PDFLib.PDFDocument.load(item.buffer);
+          const pages = await outPdf.copyPages(src, src.getPageIndices());
+          pages.forEach(p=> outPdf.addPage(p));
+        } else if(item.type==='image'){
+          const mime = item.mime || 'image/jpeg';
+          const isPng = mime.includes('png') || extFromName(item.name)==='png';
+          const img = isPng ? await outPdf.embedPng(item.buffer) : await outPdf.embedJpg(item.buffer);
+          const { width:iw, height:ih } = img.size();
+          const page = outPdf.addPage([A4.w, A4.h]);
+          const margin = 36; // 0.5 inch
+          const maxW = A4.w - margin*2, maxH = A4.h - margin*2;
+          const scale = Math.min(maxW/iw, maxH/ih);
+          const w = iw*scale, h = ih*scale;
+          const x = (A4.w - w)/2, y = (A4.h - h)/2;
+          page.drawImage(img, {x, y, width:w, height:h});
+        }
+      }
+      const bytes = await outPdf.save();
+      const blob = new Blob([bytes], {type:'application/pdf'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `merged_${Date.now()}.pdf`; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 5000);
+      mergeBtn.textContent = 'Merge → Download PDF';
+    }catch(err){
+      console.error(err); alert('Failed to merge: '+err.message);
+    } finally {
+      mergeBtn.disabled = state.items.length===0;
+    }
+  });
+
+  // --- Wire up ---
+  wireDropZone(dropEl, fileInput);
+  pickBtn.addEventListener('change', e=> handleFileList(e.target.files));
+  clearBtn.addEventListener('click', clearAll);
+  updateCount();
+  </script>
+</body>
+</html>
