@@ -88,6 +88,7 @@
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";</script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js" integrity="sha512-TelkP3PCMJv+viMWynjKcvLsQzx6dJHvIGhfqzFtZKgAjKM1YPqcwzzDEoTc/BHjf43PcPzTQOjuTr4YdE8lNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 
   <script>
   // --- State ---
@@ -103,7 +104,7 @@
   const mergeBtn = document.getElementById('mergeBtn');
   const previewAllBtn = document.getElementById('previewAllBtn');
 
-  const SUPPORTED_IMAGE_TYPES = ['image/jpeg','image/png'];
+const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
   const A4 = { w: 595.28, h: 841.89 }; // PDF points
 
   function uid(){ return 'id_' + Math.random().toString(36).slice(2,9); }
@@ -112,7 +113,11 @@
 
   function extFromName(name){ return (name.split('.').pop()||'').toLowerCase(); }
 
-  function isSupportedImage(name, mime){ const e = extFromName(name); return SUPPORTED_IMAGE_TYPES.includes(mime) || ['jpg','jpeg','png'].includes(e); }
+  function isSupportedImage(name, mime){
+  const e = extFromName(name);
+  return SUPPORTED_IMAGE_TYPES.includes(mime)
+      || ['jpg','jpeg','png','heic','heif'].includes(e);
+}
 
   function isPdf(name, mime){ const e = extFromName(name); return mime === 'application/pdf' || e === 'pdf'; }
 
@@ -121,6 +126,15 @@
   function objectURL(buf, mime){ return URL.createObjectURL(blobFromArrayBuffer(buf, mime)); }
 
   function bytesToNice(n){ if(n<1024) return n+" B"; if(n<1048576) return (n/1024).toFixed(1)+" KB"; return (n/1048576).toFixed(1)+" MB"; }
+
+  function isHeic(name, mime){
+  const e = extFromName(name);
+  return mime === 'image/heic'
+      || mime === 'image/heif'
+      || e === 'heic'
+      || e === 'heif';
+}
+
 
   function addItem({name, mime, buffer}){
     const id = uid();
@@ -245,20 +259,62 @@
     input.addEventListener('change', async e=>{ await handleFileList(e.target.files); input.value=''; });
   }
 
-  async function handleFileList(fileList){
-    const files = Array.from(fileList||[]);
-    for(const file of files){
-      const name = file.name; const mime = file.type || '';
-      const buf = await file.arrayBuffer();
-      if(isZip(name, mime)){
-        const added = await importZip(buf);
-        if(added===0) console.warn('No supported files found inside ZIP');
-      } else {
-        addItem({name, mime, buffer:buf});
-      }
+  // async function handleFileList(fileList){
+  //   const files = Array.from(fileList||[]);
+  //   for(const file of files){
+  //     const name = file.name; const mime = file.type || '';
+  //     const buf = await file.arrayBuffer();
+  //     if(isZip(name, mime)){
+  //       const added = await importZip(buf);
+  //       if(added===0) console.warn('No supported files found inside ZIP');
+  //     } else {
+  //       addItem({name, mime, buffer:buf});
+  //     }
+  //   }
+  //   updateCount();
+  // }
+
+
+    async function handleFileList(fileList){
+  const files = Array.from(fileList || []);
+  for (const file of files){
+    const name = file.name;
+    const mime = file.type || '';
+    const buf = await file.arrayBuffer();
+
+    if (isZip(name, mime)) {
+      const added = await importZip(buf);
+      if (added === 0) console.warn('No supported files found inside ZIP');
+      continue;
     }
-    updateCount();
+
+    // --- HEIC / HEIF handling ---
+    if (isHeic(name, mime)) {
+      try {
+        const heicBlob = new Blob([buf], { type: mime || 'image/heic' });
+        const converted = await heic2any({
+          blob: heicBlob,
+          toType: 'image/jpeg',
+          quality: 0.9
+        });
+        const outBlob = Array.isArray(converted) ? converted[0] : converted;
+        const outBuf = await outBlob.arrayBuffer();
+        addItem({
+          name: name.replace(/\.(heic|heif)$/i, '.jpg'),
+          mime: 'image/jpeg',
+          buffer: outBuf
+        });
+      } catch (err) {
+        console.error('HEIC conversion failed for', name, err);
+      }
+      continue;
+    }
+
+    // normal handling
+    addItem({ name, mime, buffer: buf });
   }
+  updateCount();
+}
 
   function isZip(name, mime){ const e = extFromName(name); return e==='zip' || mime==='application/zip' || mime==='application/x-zip-compressed'; }
 
@@ -270,11 +326,45 @@
     entries.sort((a,b)=> a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
     for(const f of entries){
       const e = extFromName(f.name);
-      if(['pdf','jpg','jpeg','png'].includes(e)){
-        const buf = await f.async('arraybuffer');
-        const mime = e==='pdf' ? 'application/pdf' : (e==='png'?'image/png':'image/jpeg');
-        if(addItem({name: basename(f.name), mime, buffer: buf})) added++;
-      }
+      // if(['pdf','jpg','jpeg','png'].includes(e)){
+      //   const buf = await f.async('arraybuffer');
+      //   const mime = e==='pdf' ? 'application/pdf' : (e==='png'?'image/png':'image/jpeg');
+      //   if(addItem({name: basename(f.name), mime, buffer: buf})) added++;
+      // }
+      if (['pdf','jpg','jpeg','png','heic','heif'].includes(e)) {
+  const buf = await f.async('arraybuffer');
+
+  // PDFs & regular images
+  if (['pdf','jpg','jpeg','png'].includes(e)) {
+    const mime =
+      e === 'pdf'  ? 'application/pdf' :
+      e === 'png'  ? 'image/png' :
+                     'image/jpeg';
+    if (addItem({ name: basename(f.name), mime, buffer: buf })) added++;
+  }
+
+  // HEIC/HEIF → convert to JPEG
+  if (['heic','heif'].includes(e)) {
+    try {
+      const heicBlob = new Blob([buf], { type: 'image/heic' });
+      const converted = await heic2any({
+        blob: heicBlob,
+        toType: 'image/jpeg',
+        quality: 0.9
+      });
+      const outBlob = Array.isArray(converted) ? converted[0] : converted;
+      const outBuf = await outBlob.arrayBuffer();
+      if (addItem({
+        name: basename(f.name).replace(/\.(heic|heif)$/i, '.jpg'),
+        mime: 'image/jpeg',
+        buffer: outBuf
+      })) added++;
+    } catch (err) {
+      console.error('HEIC conversion failed for', f.name, err);
+    }
+  }
+}
+
     }
     return added;
   }
