@@ -42,6 +42,15 @@
     .pill{display:inline-flex;gap:6px;align-items:center;background:#0b1220;border:1px solid #374151;border-radius:999px;padding:6px 10px;font-size:12px}
     .footer-note{padding:8px 12px;font-size:12px;opacity:.8}
     .hidden{display:none}
+    select, input[type="text"]{
+  background:#0b1220;
+  color:var(--text);
+  border:1px solid #374151;
+  border-radius:8px;
+  padding:6px 8px;
+  font-size:12px;
+}
+
   </style>
 </head>
 <body>
@@ -72,6 +81,21 @@
 
     <section class="right">
       <div class="toolbar">
+        <label class="pill">
+  Images per page
+  <select id="imgPerPage">
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="4" selected>4</option>
+    <option value="6">6</option>
+    <option value="8">8</option>
+  </select>
+</label>
+
+<label class="pill">
+  File name
+  <input id="fileNameInput" type="text" placeholder="merged_claim" style="width:140px">
+</label>
         <button id="mergeBtn" class="primary" disabled>Merge → Download PDF</button>
         <button id="previewAllBtn" title="Render all pages of the selected item">Render Selected</button>
         <span class="pill" id="selInfo">No selection</span>
@@ -92,6 +116,24 @@
 
   <script>
   // --- State ---
+    const imgPerPageSelect = document.getElementById('imgPerPage');
+const fileNameInput = document.getElementById('fileNameInput');
+
+    function getOutputFileName(){
+  const raw = fileNameInput.value.trim();
+  if (!raw) return `merged_${Date.now()}.pdf`;
+  return raw.toLowerCase().endsWith('.pdf') ? raw : `${raw}.pdf`;
+}
+function getGrid(imagesPerPage){
+  switch (Number(imagesPerPage)) {
+    case 2: return { cols: 1, rows: 2 };
+    case 4: return { cols: 2, rows: 2 };
+    case 6: return { cols: 2, rows: 3 };
+    case 8: return { cols: 2, rows: 4 };
+    default: return { cols: 1, rows: 1 };
+  }
+}
+
   const state = { items: [], selectedId: null };
   const listEl = document.getElementById('list');
   const dropEl = document.getElementById('drop');
@@ -381,24 +423,77 @@ const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/h
           const src = await PDFLib.PDFDocument.load(item.buffer);
           const pages = await outPdf.copyPages(src, src.getPageIndices());
           pages.forEach(p=> outPdf.addPage(p));
-        } else if(item.type==='image'){
-          const mime = item.mime || 'image/jpeg';
-          const isPng = mime.includes('png') || extFromName(item.name)==='png';
-          const img = isPng ? await outPdf.embedPng(item.buffer) : await outPdf.embedJpg(item.buffer);
-          const { width:iw, height:ih } = img.size();
-          const page = outPdf.addPage([A4.w, A4.h]);
-          const margin = 36; // 0.5 inch
-          const maxW = A4.w - margin*2, maxH = A4.h - margin*2;
-          const scale = Math.min(maxW/iw, maxH/ih);
-          const w = iw*scale, h = ih*scale;
-          const x = (A4.w - w)/2, y = (A4.h - h)/2;
-          page.drawImage(img, {x, y, width:w, height:h});
         }
+        const imagesPerPage = Number(imgPerPageSelect.value);
+const { cols, rows } = getGrid(imagesPerPage);
+const margin = 36;
+const cellW = (A4.w - margin*2) / cols;
+const cellH = (A4.h - margin*2) / rows;
+
+let imageBuffer = [];
+
+for (const item of state.items) {
+  if (item.type === 'pdf') {
+    const src = await PDFLib.PDFDocument.load(item.buffer);
+    const pages = await outPdf.copyPages(src, src.getPageIndices());
+    pages.forEach(p => outPdf.addPage(p));
+    continue;
+  }
+
+  if (item.type === 'image') {
+    imageBuffer.push(item);
+
+    if (imageBuffer.length === imagesPerPage) {
+      await flushImages();
+    }
+  }
+}
+
+// flush remaining images
+if (imageBuffer.length) {
+  await flushImages();
+}
+
+async function flushImages(){
+  const page = outPdf.addPage([A4.w, A4.h]);
+
+  for (let i = 0; i < imageBuffer.length; i++) {
+    const item = imageBuffer[i];
+    const isPng = item.mime.includes('png') || extFromName(item.name)==='png';
+    const img = isPng
+      ? await outPdf.embedPng(item.buffer)
+      : await outPdf.embedJpg(item.buffer);
+
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+
+    const x = margin + col * cellW;
+    const y = A4.h - margin - (row + 1) * cellH;
+
+    const scale = Math.min(
+      cellW / img.width,
+      cellH / img.height
+    );
+
+    const w = img.width * scale;
+    const h = img.height * scale;
+
+    page.drawImage(img, {
+      x: x + (cellW - w) / 2,
+      y: y + (cellH - h) / 2,
+      width: w,
+      height: h
+    });
+  }
+
+  imageBuffer = [];
+}
+
       }
       const bytes = await outPdf.save();
       const blob = new Blob([bytes], {type:'application/pdf'});
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `merged_${Date.now()}.pdf`; document.body.appendChild(a); a.click(); a.remove();
+      const a = document.createElement('a'); a.href = url; a.download = getOutputFileName(); document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=> URL.revokeObjectURL(url), 5000);
       mergeBtn.textContent = 'Merge → Download PDF';
     }catch(err){
