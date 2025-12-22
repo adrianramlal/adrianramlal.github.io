@@ -331,26 +331,27 @@ const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/h
     }
 
     // --- HEIC / HEIF handling ---
-    if (isHeic(name, mime)) {
-      try {
-        const heicBlob = new Blob([buf], { type: mime || 'image/heic' });
-        const converted = await heic2any({
-          blob: heicBlob,
-          toType: 'image/jpeg',
-          quality: 0.9
-        });
-        const outBlob = Array.isArray(converted) ? converted[0] : converted;
-        const outBuf = await outBlob.arrayBuffer();
-        addItem({
-          name: name.replace(/\.(heic|heif)$/i, '.jpg'),
-          mime: 'image/jpeg',
-          buffer: outBuf
-        });
-      } catch (err) {
-        console.error('HEIC conversion failed for', name, err);
-      }
-      continue;
-    }
+if (isHeic(name, mime)) {
+  try {
+    const heicBlob = new Blob([buf], { type: mime || 'image/heic' });
+    const converted = await heic2any({
+      blob: heicBlob,
+      toType: 'image/jpeg',
+      quality: 0.9
+    });
+    const outBlob = Array.isArray(converted) ? converted[0] : converted;
+    const outBuf = await outBlob.arrayBuffer();
+    addItem({
+      name: name.replace(/\.(heic|heif)$/i, '.jpg'),
+      mime: 'image/jpeg',
+      buffer: outBuf
+    });
+  } catch (err) {
+    console.error('HEIC conversion failed for', name, err);
+  }
+  continue;
+}
+
 
     // normal handling
     addItem({ name, mime, buffer: buf });
