@@ -288,7 +288,6 @@
       const outPdf = await PDFLib.PDFDocument.create();
       for(const item of state.items){
         if(item.type==='pdf'){
-          // const src = await PDFLib.PDFDocument.load(item.buffer);
           const src = await PDFLib.PDFDocument.load(item.buffer, {
   ignoreEncryption: true
 });
