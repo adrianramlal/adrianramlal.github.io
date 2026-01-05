@@ -286,28 +286,71 @@
     mergeBtn.disabled = true; mergeBtn.textContent = 'Merging…';
     try{
       const outPdf = await PDFLib.PDFDocument.create();
-      for(const item of state.items){
-        if(item.type==='pdf'){
-          const src = await PDFLib.PDFDocument.load(item.buffer, {
-  ignoreEncryption: true
-});
+//       for(const item of state.items){
+//         if(item.type==='pdf'){
+//           const src = await PDFLib.PDFDocument.load(item.buffer, {
+//   ignoreEncryption: true
+// });
 
-          const pages = await outPdf.copyPages(src, src.getPageIndices());
-          pages.forEach(p=> outPdf.addPage(p));
-        } else if(item.type==='image'){
-          const mime = item.mime || 'image/jpeg';
-          const isPng = mime.includes('png') || extFromName(item.name)==='png';
-          const img = isPng ? await outPdf.embedPng(item.buffer) : await outPdf.embedJpg(item.buffer);
-          const { width:iw, height:ih } = img.size();
-          const page = outPdf.addPage([A4.w, A4.h]);
-          const margin = 36; // 0.5 inch
-          const maxW = A4.w - margin*2, maxH = A4.h - margin*2;
-          const scale = Math.min(maxW/iw, maxH/ih);
-          const w = iw*scale, h = ih*scale;
-          const x = (A4.w - w)/2, y = (A4.h - h)/2;
-          page.drawImage(img, {x, y, width:w, height:h});
-        }
-      }
+//           const pages = await outPdf.copyPages(src, src.getPageIndices());
+//           pages.forEach(p=> outPdf.addPage(p));
+//         } else if(item.type==='image'){
+//           const mime = item.mime || 'image/jpeg';
+//           const isPng = mime.includes('png') || extFromName(item.name)==='png';
+//           const img = isPng ? await outPdf.embedPng(item.buffer) : await outPdf.embedJpg(item.buffer);
+//           const { width:iw, height:ih } = img.size();
+//           const page = outPdf.addPage([A4.w, A4.h]);
+//           const margin = 36; // 0.5 inch
+//           const maxW = A4.w - margin*2, maxH = A4.h - margin*2;
+//           const scale = Math.min(maxW/iw, maxH/ih);
+//           const w = iw*scale, h = ih*scale;
+//           const x = (A4.w - w)/2, y = (A4.h - h)/2;
+//           page.drawImage(img, {x, y, width:w, height:h});
+//         }
+//       }
+
+
+      for (const item of state.items) {
+  if (item.type === 'pdf') {
+    try {
+      const src = await PDFLib.PDFDocument.load(item.buffer, {
+        ignoreEncryption: true
+      });
+
+      const pages = await outPdf.copyPages(src, src.getPageIndices());
+      pages.forEach(p => outPdf.addPage(p));
+
+    } catch (err) {
+      console.warn(
+        'Skipping encrypted PDF (password protected):',
+        item.name
+      );
+      // continue merge instead of crashing
+    }
+
+  } else if (item.type === 'image') {
+    const mime = item.mime || 'image/jpeg';
+    const isPng = mime.includes('png') || extFromName(item.name) === 'png';
+    const img = isPng
+      ? await outPdf.embedPng(item.buffer)
+      : await outPdf.embedJpg(item.buffer);
+
+    const { width: iw, height: ih } = img.size();
+    const page = outPdf.addPage([A4.w, A4.h]);
+    const margin = 36;
+    const maxW = A4.w - margin * 2;
+    const maxH = A4.h - margin * 2;
+    const scale = Math.min(maxW / iw, maxH / ih);
+
+    page.drawImage(img, {
+      x: (A4.w - iw * scale) / 2,
+      y: (A4.h - ih * scale) / 2,
+      width: iw * scale,
+      height: ih * scale
+    });
+  }
+}
+
       const bytes = await outPdf.save();
       const blob = new Blob([bytes], {type:'application/pdf'});
       const url = URL.createObjectURL(blob);
