@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tatil Career Pathways</title>
+    <style>
+        /* --- TATIL BRANDING & CORE STYLES --- */
+        :root {
+            --tatil-red: #E31837; 
+            --tatil-black: #000000;
+            --gray-light: #f8f9fa;
+            --gray-border: #e9ecef;
+            --text-dark: #333;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --card-width: 220px;
+        }
+
+
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* SharePoint standard font */
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background: white;
+            border-bottom: 4px solid var(--tatil-red);
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-family: 'Georgia', 'Times New Roman', serif; /* Matching Tatil Serif Style */
+            font-weight: 900;
+            color: var(--tatil-black);
+            font-size: 2.5rem;
+            letter-spacing: -1px;
+        }
+        .header-title span {
+            color: var(--tatil-red);
+        }
+        .header-subtitle {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* --- LAYOUT --- */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 100px);
+        }
+
+        /* --- LEFT: DETAILS PANEL --- */
+        .details-panel {
+            width: 300px;
+            background: var(--tatil-black);
+            color: white;
+            padding: 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        .details-header {
+            border-bottom: 1px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+
+        .details-header h2 {
+            margin: 0;
+            color: white;
+            font-family: 'Georgia', serif;
+        }
+
+        .details-header .meta {
+            color: var(--tatil-red);
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .detail-section {
+            margin-bottom: 20px;
+        }
+        .detail-section h4 {
+            color: #aaa;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        .detail-section p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin: 0;
+            color: #eee;
+        }
+
+
+	.logo-img {
+  	height: 40px;
+  	width: auto;
+  	display: block;
+}
+
+        /* --- RIGHT: INTERACTIVE CHART --- */
+        .chart-viewport {
+            flex-grow: 1;
+            position: relative;
+            overflow: auto; /* Allow scrolling for large trees */
+            background-color: var(--gray-light);
+            background-image: radial-gradient(#ddd 1px, transparent 1px);
+            background-size: 20px 20px;
+            padding: 40px;
+            cursor: grab; /* Indicates draggable area */
+            user-select: none; /* Prevents text highlighting while dragging */
+        }
+        
+        .chart-viewport.active {
+            cursor: grabbing;
+        }
+
+        .chart-container {
+            display: flex;
+            gap: 150px; /* Space between columns */
+            position: relative;
+            min-width: max-content;
+            padding-bottom: 100px;
+        }
+
+        /* SVG LAYER FOR LINES */
+        #connections-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Let clicks pass through to cards */
+            z-index: 1;
+        }
+
+        /* PATH STYLES */
+        .connector-path {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 2px;
+            transition: all 0.4s ease;
+        }
+        .connector-path.highlighted {
+            stroke: var(--tatil-red);
+            stroke-width: 4px;
+        }
+        .connector-path.dimmed {
+            stroke: #eee;
+            stroke-width: 1px;
+            opacity: 0.3;
+        }
+
+        /* --- COLUMNS & CARDS --- */
+        .level-column {
+            display: flex;
+            flex-direction: column;
+            gap: 40px; /* Space between cards in same column */
+            position: relative;
+            z-index: 2;
+        }
+
+        .level-header {
+            text-align: center;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            background: #e0e0e0;
+            padding: 5px 10px;
+            border-radius: 20px;
+            align-self: center;
+        }
+
+        .role-card {
+            width: var(--card-width);
+            background: white;
+            padding: 20px;
+            border-radius: 4px; /* Slight rounded */
+            border-left: 6px solid #ccc;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+        }
+
+        .role-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Active State (Selected) */
+        .role-card.active {
+            border-left-color: var(--tatil-red);
+            background: var(--tatil-black);
+        }
+        .role-card.active h3 { color: white; }
+        .role-card.active p { color: #ccc; }
+
+        /* Pathway Highlight State */
+        .role-card.path-highlight {
+            border-left-color: var(--tatil-red);
+            border-color: var(--tatil-red);
+        }
+
+        .role-card h3 {
+            margin: 0 0 5px 0;
+            font-size: 1rem;
+            color: var(--tatil-black);
+        }
+
+        .role-card p {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* Badge for Branching */
+        .branch-badge {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: #eee;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+
+
+    <header>
+        <div class="header-title">
+            <!-- Used CSS to approximate Logo style -->
+		<div class="logo">
+   		 <img src="tatil-general-logo.svg" alt="Tatil Logo" width="80">
+		</div>
+        </div>
+        <div style="font-size: 0.9rem; font-weight: bold;">
+            Select a role to view possible futures
+        </div>
+    </header>
+
+
+    <div class="main-container">
+        <!-- DETAILS PANEL (Left) -->
+        <div class="details-panel" id="detailsPanel">
+            <div class="details-header">
+                <h2 id="detailTitle">Welcome</h2>
+                <span class="meta" id="detailLevel">Start Exploring</span>
+            </div>
+            <div class="detail-section">
+                <h4>Description</h4>
+                <p id="detailDesc">Click on any role card on the chart to see job details, requirements, and where that career path can lead within Tatil.</p>
+            </div>
+            <div class="detail-section" id="reqSection" style="display:none;">
+                <h4>Typical Requirements</h4>
+                <p id="detailReq"></p>
+            </div>
+        </div>
+
+        <!-- CHART AREA (Right) -->
+        <div class="chart-viewport">
+            <svg id="connections-layer"></svg>
+            <div class="chart-container" id="chartContainer">
+                <!-- Javascript will inject columns and cards here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // --- ADMINISTRATOR CONFIGURATION: EDIT DATA HERE ---
+        // =========================================================
+        // Edit this JSON object to add/remove roles or change connections.
+        // "nextSteps": Array of IDs that this role leads TO.
+        
+        const CAREER_DATA = [
+            {
+                levelName: "Entry Level",
+                roles: [
+                    {
+                        id: "csr",
+                        title: "Customer Service Rep",
+                        dept: "General",
+                        desc: "The face of Tatil. Handles policy inquiries, client onboarding, and general support.",
+                        req: "CXC/CSEC passes, Customer Service experience.",
+                        nextSteps: ["underwriting_asst", "claims_clerk", "sales_agent"]
+                    },
+{
+                        id: "mgtrainee",
+                        title: "Management Trainee",
+                        dept: "General",
+                        desc: "Learns core underwriting, claims, and customer service functions while developing leadership skills to support future management roles.",
+                        req: "1 Year Working Experience, BSc Degree",
+                        nextSteps: ["underwriting_asst", "claims_clerk", "sales_agent"]
+                    },
+
+                    {
+                        id: "admin_clerk",
+                        title: "Admin Clerk",
+                        dept: "Operations",
+                        desc: "Supports back-office operations, filing, and data entry.",
+                        req: "High attention to detail, MS Office proficiency.",
+                        nextSteps: ["underwriting_asst", "claims_clerk"]
+                    }
+                ]
+            },
+            {
+                levelName: "Level 2 (Junior)",
+                roles: [
+                    {
+                        id: "underwriting_asst",
+                        title: "Underwriting Assistant",
+                        dept: "Underwriting",
+                        desc: "Assists underwriters in risk assessment and policy issuance.",
+                        req: "1-2 years insurance experience.",
+                        nextSteps: ["junior_underwriter"]
+                    },
+                    {
+                        id: "claims_clerk",
+                        title: "Claims Technician",
+                        dept: "Claims",
+                        desc: "Processes initial claim reports and documentation.",
+                        req: "Analytical skills, empathy.",
+                        nextSteps: ["junior_adjuster"]
+                    },
+                    {
+                        id: "sales_agent",
+                        title: "Sales Agent",
+                        dept: "Sales",
+                        desc: "Direct sales of Life and General insurance products.",
+                        req: "Sales license, aggressive drive.",
+                        nextSteps: ["senior_agent"]
+                    }
+                ]
+            },
+            {
+                levelName: "Level 3 (Specialist)",
+                roles: [
+                    {
+                        id: "junior_underwriter",
+                        title: "Junior Underwriter",
+                        dept: "Underwriting",
+                        desc: "Evaluates risks and determines policy terms for standard cases.",
+                        req: "Insurance certification (e.g., LOMA/CII).",
+                        nextSteps: ["senior_underwriter", "compliance_officer"]
+                    },
+                    {
+                        id: "junior_adjuster",
+                        title: "Claims Specialist",
+                        dept: "Claims",
+                        desc: "Investigates claims, determines liability, and negotiates settlements.",
+                        req: "Negotiation skills, vehicle/property knowledge.",
+                        nextSteps: ["senior_adjuster", "risk_surveyor"]
+                    },
+                    {
+                        id: "junior_adjuster",
+                        title: "Claims Inspector",
+                        dept: "Claims",
+                        desc: "Investigates claims, determines liability, and negotiates settlements.",
+                        req: "Negotiation skills, vehicle/property knowledge.",
+                        nextSteps: ["senior_adjuster", "risk_surveyor"]
+                    },
+                    {
+                        id: "senior_agent",
+                        title: "Senior Sales Agent",
+                        dept: "Sales",
+                        desc: "High-volume sales producer and mentor to juniors.",
+                        req: "Proven track record.",
+                        nextSteps: ["sales_manager"]
+                    }
+                ]
+            },
+            {
+                levelName: "Level 4 (Senior)",
+                roles: [
+                    {
+                        id: "senior_underwriter",
+                        title: "Senior Underwriter",
+                        dept: "Underwriting",
+                        desc: "Handles complex risks, commercial portfolios, and broker relationships.",
+                        req: "Advanced certifications, 5+ years experience.",
+                        nextSteps: ["u_manager", "ops_manager"]
+                    },
+                    {
+                        id: "senior_adjuster",
+                        title: "Senior Claims Specialist",
+                        dept: "Claims",
+                        desc: "Handles major loss claims and complex litigation files.",
+                        req: "Deep legal/policy knowledge.",
+                        nextSteps: ["claims_manager"]
+                    },
+                    {
+                        id: "risk_surveyor",
+                        title: "Senior Claims Inspector",
+                        dept: "Technical",
+                        desc: "Inspects properties to assess risk profile before coverage.",
+                        req: "Technical/Engineering background helpful.",
+                        nextSteps: ["claims_manager"]
+                    },
+                    {
+                        id: "compliance_officer",
+                        title: "Compliance Officer",
+                        dept: "Legal",
+                        desc: "Ensures company adherence to insurance regulations and AML laws.",
+                        req: "Legal or Auditing background.",
+                        nextSteps: ["ops_manager"]
+                    }
+                ]
+            },
+            {
+                levelName: "Management",
+                roles: [
+                    {
+                        id: "u_manager",
+                        title: "Underwriting Manager",
+                        dept: "Underwriting",
+                        desc: "Oversees the underwriting department profitability and strategy.",
+                        req: "Management experience, MBA preferred.",
+                        nextSteps: ["exec_director"]
+                    },
+                    {
+                        id: "claims_manager",
+                        title: "Claims Manager",
+                        dept: "Claims",
+                        desc: "Manages the claims department efficiency and loss ratios.",
+                        req: "Strategic planning, crisis management.",
+                        nextSteps: ["exec_director"]
+                    },
+                    {
+                        id: "sales_manager",
+                        title: "Sales Manager",
+                        dept: "Sales",
+                        desc: "Leads the sales force and sets revenue targets.",
+                        req: "Leadership, motivational skills.",
+                        nextSteps: ["exec_director"]
+                    },
+                    {
+                        id: "ops_manager",
+                        title: "Technical Operations Manager",
+                        dept: "Operations",
+                        desc: "Oversees daily business operations and IT integration.",
+                        req: "Logistics and Systems expertise.",
+                        nextSteps: ["exec_director"]
+                    }
+                ]
+            },
+            {
+                levelName: "Executive",
+                roles: [
+                    {
+                        id: "exec_director",
+                        title: "Managing Director / Chief Operations Officer",
+                        dept: "Executive",
+                        desc: "Sets company vision, strategy, and high-level governance.",
+                        req: "Extensive industry tenure.",
+                        nextSteps: [] // Top of the chart
+                    }
+                ]
+            }
+        ];
+
+        // =========================================================
+        // --- LOGIC: DO NOT EDIT BELOW UNLESS YOU KNOW JS ---
+        // =========================================================
+
+        const container = document.getElementById('chartContainer');
+        const svgLayer = document.getElementById('connections-layer');
+        const detailsPanel = {
+            title: document.getElementById('detailTitle'),
+            level: document.getElementById('detailLevel'),
+            desc: document.getElementById('detailDesc'),
+            req: document.getElementById('detailReq'),
+            reqSection: document.getElementById('reqSection')
+        };
+
+        // State for drag functionality
+        const chartState = { 
+            isDown: false, 
+            startX: 0, 
+            startY: 0, 
+            scrollLeft: 0, 
+            scrollTop: 0, 
+            isDragging: false 
+        };
+
+        let cardElements = {}; // Map ID -> DOM Element
+        let connections = []; // Store line coordinates
+
+        // 1. Render the HTML Grid
+        function renderChart() {
+            container.innerHTML = '';
+            
+            CAREER_DATA.forEach((level, index) => {
+                // Create Column
+                const col = document.createElement('div');
+                col.className = 'level-column';
+                
+                // Header
+                const header = document.createElement('div');
+                header.className = 'level-header';
+                header.textContent = level.levelName;
+                col.appendChild(header);
+
+                // Roles
+                level.roles.forEach(role => {
+                    const card = document.createElement('div');
+                    card.className = 'role-card';
+                    card.id = `card-${role.id}`;
+                    card.innerHTML = `
+                        <h3>${role.title}</h3>
+                        <p>${role.dept}</p>
+                        ${role.nextSteps && role.nextSteps.length > 0 ? `<div class="branch-badge" title="Can branch to multiple roles">+${role.nextSteps.length}</div>` : ''}
+                    `;
+                    
+                    // Interaction: Check if we were dragging before selecting
+                    card.addEventListener('click', (e) => {
+                        if (chartState.isDragging) return; // Prevent click if this was a drag action
+                        selectRole(role);
+                    });
+                    
+                    col.appendChild(card);
+                    
+                    // Store reference
+                    cardElements[role.id] = {
+                        element: card,
+                        data: role
+                    };
+                });
+
+                container.appendChild(col);
+            });
+
+            // Wait for DOM layout then draw lines
+            setTimeout(drawLines, 100);
+        }
+
+        // 2. Draw SVG Lines
+        function drawLines() {
+            svgLayer.innerHTML = ''; // Clear existing
+            connections = [];
+
+            // Set SVG size to match scrollable container width
+            svgLayer.style.width = container.scrollWidth + 'px';
+            svgLayer.style.height = container.scrollHeight + 'px';
+
+            Object.values(cardElements).forEach(source => {
+                if(!source.data.nextSteps) return;
+
+                source.data.nextSteps.forEach(targetId => {
+                    const target = cardElements[targetId];
+                    if(target) {
+                        createPath(source, target);
+                    }
+                });
+            });
+        }
+
+        function createPath(sourceObj, targetObj) {
+            const sourceEl = sourceObj.element;
+            const targetEl = targetObj.element;
+
+            // Get coordinates relative to the chart container
+            const containerRect = container.getBoundingClientRect();
+            const sRect = sourceEl.getBoundingClientRect();
+            const tRect = targetEl.getBoundingClientRect();
+
+            // Calculate start (Right side of source) and end (Left side of target)
+            // Adjust for scrolling
+            const scrollLeft = container.parentNode.scrollLeft;
+
+            const x1 = (sRect.right - containerRect.left);
+            const y1 = (sRect.top - containerRect.top) + (sRect.height / 2);
+            
+            const x2 = (tRect.left - containerRect.left);
+            const y2 = (tRect.top - containerRect.top) + (tRect.height / 2);
+
+            // Bezier Curve Logic for smooth "S" shape
+            const controlOffset = (x2 - x1) / 2;
+            const pathData = `M ${x1} ${y1} C ${x1 + controlOffset} ${y1}, ${x2 - controlOffset} ${y2}, ${x2} ${y2}`;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", pathData);
+            path.setAttribute("class", "connector-path");
+            path.id = `path-${sourceObj.data.id}-${targetObj.data.id}`;
+            
+            svgLayer.appendChild(path);
+
+            connections.push({
+                from: sourceObj.data.id,
+                to: targetObj.data.id,
+                element: path
+            });
+        }
+
+        // 3. Handle Interaction
+        function selectRole(role) {
+            // A. Update Detail Panel
+            detailsPanel.title.textContent = role.title;
+            detailsPanel.level.textContent = role.dept;
+            detailsPanel.desc.textContent = role.desc;
+            
+            if(role.req) {
+                detailsPanel.req.textContent = role.req;
+                detailsPanel.reqSection.style.display = "block";
+            } else {
+                detailsPanel.reqSection.style.display = "none";
+            }
+
+            // B. Visual Reset
+            document.querySelectorAll('.role-card').forEach(el => el.classList.remove('active', 'path-highlight'));
+            document.querySelectorAll('.connector-path').forEach(el => {
+                el.classList.remove('highlighted');
+                el.classList.add('dimmed');
+            });
+
+            // C. Highlight Selected
+            const selectedEl = cardElements[role.id].element;
+            selectedEl.classList.add('active');
+
+            // D. Highlight Forward Paths (Recursively)
+            highlightForward(role.id);
+        }
+
+        function highlightForward(currentId) {
+            // Find paths starting from this ID
+            const forwardConnections = connections.filter(c => c.from === currentId);
+            
+            forwardConnections.forEach(conn => {
+                // Highlight Line
+                conn.element.classList.remove('dimmed');
+                conn.element.classList.add('highlighted');
+
+                // Highlight Target Card
+                const targetCard = cardElements[conn.to].element;
+                targetCard.classList.add('path-highlight');
+
+                // Recurse
+                highlightForward(conn.to);
+            });
+        }
+
+        // =========================================================
+        // --- DRAG TO SCROLL FUNCTIONALITY ---
+        // =========================================================
+        const viewport = document.querySelector('.chart-viewport');
+
+        viewport.addEventListener('mousedown', (e) => {
+            chartState.isDown = true;
+            chartState.isDragging = false; // Reset drag status
+            viewport.classList.add('active');
+            
+            // Record start positions
+            chartState.startX = e.pageX - viewport.offsetLeft;
+            chartState.startY = e.pageY - viewport.offsetTop;
+            chartState.scrollLeft = viewport.scrollLeft;
+            chartState.scrollTop = viewport.scrollTop;
+        });
+
+        viewport.addEventListener('mouseleave', () => {
+            chartState.isDown = false;
+            viewport.classList.remove('active');
+        });
+
+        viewport.addEventListener('mouseup', () => {
+            chartState.isDown = false;
+            viewport.classList.remove('active');
+            
+            // Slight delay before resetting dragging flag to allow click handlers to check it
+            setTimeout(() => { chartState.isDragging = false; }, 50);
+        });
+
+        viewport.addEventListener('mousemove', (e) => {
+            if (!chartState.isDown) return;
+            e.preventDefault(); // Prevent text selection
+            
+            const x = e.pageX - viewport.offsetLeft;
+            const y = e.pageY - viewport.offsetTop;
+            const walkX = (x - chartState.startX); 
+            const walkY = (y - chartState.startY);
+            
+            // If moved more than 5 pixels, consider it a drag operation (not a click)
+            if (Math.abs(walkX) > 5 || Math.abs(walkY) > 5) {
+                chartState.isDragging = true;
+            }
+
+            viewport.scrollLeft = chartState.scrollLeft - walkX;
+            viewport.scrollTop = chartState.scrollTop - walkY;
+        });
+
+        // Window resize handling to redraw lines
+        window.addEventListener('resize', drawLines);
+        
+        // Initial Run
+        renderChart();
+
+    </script>
+</body>
+</html>
