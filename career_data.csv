@@ -1,0 +1,20 @@
+Level,ID,Title,Department,Description,Requirements,NextSteps
+Entry Level,csr,Customer Service Rep,General,"The face of Tatil. Handles policy inquiries, client onboarding, and general support.","CXC/CSEC passes, Customer Service experience.",underwriting_asst;claims_clerk;sales_agent
+Entry Level,mgtrainee,Trainee,General,"Learns core underwriting, claims, and customer service functions while developing leadership skills.","1 Year Working Experience, BSc Degree",underwriting_asst;claims_clerk;sales_agent
+Entry Level,admin_clerk,Admin Clerk,Operations,"Supports back-office operations, filing, and data entry.","High attention to detail, MS Office proficiency.",underwriting_asst;claims_clerk
+Level 2 (Junior),underwriting_asst,Underwriting Assistant,Underwriting,Assists underwriters in risk assessment and policy issuance.,1-2 years insurance experience.,junior_underwriter
+Level 2 (Junior),claims_clerk,Claims Technician,Claims,Processes initial claim reports and documentation.,"Analytical skills, empathy.",junior_adjuster
+Level 2 (Junior),sales_agent,Sales Agent,Sales,Direct sales of Life and General insurance products.,"Sales license, aggressive drive.",senior_agent
+Level 3 (Specialist),junior_underwriter,Junior Underwriter,Underwriting,Evaluates risks and determines policy terms for standard cases.,"Insurance certification (e.g., LOMA/CII).",senior_underwriter;compliance_officer
+Level 3 (Specialist),junior_adjuster,Claims Specialist,Claims,"Investigates claims, determines liability, and negotiates settlements.","Negotiation skills, vehicle/property knowledge.",senior_adjuster;risk_surveyor
+Level 3 (Specialist),claims_inspector,Claims Inspector,Claims,"Investigates claims, determines liability, and negotiates settlements.","Negotiation skills, vehicle/property knowledge.",senior_adjuster;risk_surveyor
+Level 3 (Specialist),senior_agent,Senior Sales Agent,Sales,High-volume sales producer and mentor to juniors.,Proven track record.,sales_manager
+Level 4 (Senior),senior_underwriter,Senior Underwriter,Underwriting,"Handles complex risks, commercial portfolios, and broker relationships.","Advanced certifications, 5+ years experience.",u_manager;ops_manager
+Level 4 (Senior),senior_adjuster,Senior Claims Specialist,Claims,Handles major loss claims and complex litigation files.,Deep legal/policy knowledge.,claims_manager
+Level 4 (Senior),risk_surveyor,Senior Claims Inspector,Technical,Inspects properties to assess risk profile before coverage.,Technical/Engineering background helpful.,claims_manager
+Level 4 (Senior),compliance_officer,Compliance Officer,Legal,Ensures company adherence to insurance regulations and AML laws.,Legal or Auditing background.,ops_manager
+Management,u_manager,Underwriting Manager,Underwriting,Oversees the underwriting department profitability and strategy.,"Management experience, MBA preferred.",exec_director
+Management,claims_manager,Claims Manager,Claims,Manages the claims department efficiency and loss ratios.,"Strategic planning, crisis management.",exec_director
+Management,sales_manager,Sales Manager,Sales,Leads the sales force and sets revenue targets.,"Leadership, motivational skills.",exec_director
+Management,ops_manager,Technical Operations Manager,Operations,Oversees daily business operations and IT integration.,Logistics and Systems expertise.,exec_director
+Executive,exec_director,Managing Director / COO,Executive,"Sets company vision, strategy, and high-level governance.",Extensive industry tenure.,
