@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For Shareeza Ali</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #fce7f3; /* pink-100 */
+            overflow: hidden; /* Prevent scrolling during animations */
+        }
+        .hand-font {
+            font-family: 'Indie Flower', cursive;
+        }
+        .floating-heart {
+            position: absolute;
+            color: #ec4899;
+            opacity: 0.7;
+            animation: float 6s infinite ease-in-out;
+            pointer-events: none;
+            z-index: 0;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-20vh) scale(1.2); opacity: 0; }
+        }
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        /* Modal Styles */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 2px solid #fbcfe8;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center relative bg-gradient-to-br from-pink-100 to-rose-200">
+
+    <!-- Floating Background Hearts (Generated via JS) -->
+    <div id="hearts-container"></div>
+
+    <!-- MAIN CONTAINER -->
+    <div id="main-card" class="glass-panel rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4 relative z-10 transition-all duration-500 transform">
+        
+        <!-- STEP 1: INTRO -->
+        <div id="step-1" class="text-center">
+            <div class="mb-6 relative inline-block">
+                <!-- Image container with fallback -->
+                <div class="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-pink-400 shadow-lg relative bg-white">
+                    <!-- Attempts to load uploaded image, falls back to cat if local file not found in context -->
+                    <img src="image_474e64.png" 
+                         onerror="this.src='https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2QyZzZ4Nnl5aDhzN3B4Z3B4Z3B4Z3B4Z3B4Z3B4Z3B4/MDJ9IbCd5tRB/giphy.gif'" 
+                         alt="Shareeza" 
+                         class="w-full h-full object-cover">
+                </div>
+                <div class="absolute bottom-0 right-0 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-bounce">
+                    TARGET ACQUIRED
+                </div>
+            </div>
+            
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Hello, Shareeza Ali.</h1>
+            <p class="text-gray-600 mb-6">I have an important question. But first, standard protocol requires you to sign a waiver.</p>
+            
+            <button onclick="nextStep(2)" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105">
+                Proceed <span class="text-xl">🙄</span>
+            </button>
+        </div>
+
+        <!-- STEP 2: TERMS OF SERVICE (The Annoying Part) -->
+        <div id="step-2" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Terms & Conditions</h2>
+            <div class="bg-gray-100 p-4 rounded-lg h-48 overflow-y-scroll text-sm text-gray-600 mb-4 border border-gray-300 shadow-inner">
+                <p class="font-bold mb-2">AGREEMENT OF TOLERANCE</p>
+                <p class="mb-2">1. By proceeding, Shareeza Ali ("The Victim") acknowledges that I ("The Annoyance") am annoying, but in a charming, specific way that is hard to replicate.</p>
+                <p class="mb-2">2. The Victim agrees that my bad jokes are actually high-level comedy that just goes over people's heads.</p>
+                <p class="mb-2">3. The Victim admits that life is 34% more boring without me annoying her.</p>
+                <p class="mb-2">4. The Victim agrees to eat food if I buy it.</p>
+                <p class="mb-2">5. Liability Waiver: I am not responsible for eye-rolling induced injuries.</p>
+                <p class="mb-2">6. Keep scrolling...</p>
+                <p class="mb-2">7. Almost there...</p>
+                <p class="mb-2">8. Just click the button Shareeza.</p>
+            </div>
+            
+            <div class="flex items-center mb-6">
+                <input type="checkbox" id="agree-check" class="w-5 h-5 text-rose-600 rounded focus:ring-rose-500 border-gray-300" onchange="toggleAgreeButton()">
+                <label for="agree-check" class="ml-2 text-gray-700 text-sm">I admit you are somewhat tolerable.</label>
+            </div>
+
+            <button id="agree-btn" disabled onclick="nextStep(3)" class="w-full bg-gray-300 text-gray-500 font-bold py-3 px-8 rounded-lg cursor-not-allowed transition-all">
+                I Agree (Reluctantly)
+            </button>
+        </div>
+
+        <!-- STEP 3: THE QUESTION -->
+        <div id="step-3" class="hidden text-center relative">
+            <h1 class="hand-font text-4xl font-bold text-rose-600 mb-8 leading-tight">
+                Will you be my Valentine?
+            </h1>
+            
+            <div class="flex flex-col gap-4 items-center justify-center h-40 relative">
+                <!-- YES Button -->
+                <button id="yes-btn" onclick="nextStep(4)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-10 rounded-xl shadow-xl transform transition-all duration-200 z-20 text-xl">
+                    YES <span class="text-2xl">💖</span>
+                </button>
+
+                <!-- NO Button -->
+                <button id="no-btn" onmouseover="moveButton()" onclick="moveButton()" class="absolute top-20 bg-gray-200 hover:bg-gray-300 text-gray-600 font-semibold py-2 px-6 rounded-lg transition-all duration-100 z-10">
+                    No
+                </button>
+            </div>
+            
+            <p id="annoy-status" class="text-xs text-gray-400 mt-8 h-4"></p>
+        </div>
+
+        <!-- STEP 4: SUCCESS -->
+        <div id="step-4" class="hidden text-center">
+            <h1 class="text-4xl font-bold text-rose-600 mb-4 animate-bounce">I KNEW IT!</h1>
+            <div class="text-6xl mb-4">🎉🌹💃🏽</div>
+            <p class="text-xl text-gray-700 hand-font mb-6">
+                You just signed the contract, Shareeza. No take-backs.<br>
+                See you soon.
+            </p>
+            <p class="text-sm text-gray-500 italic">
+                (I promise to only be 10% annoying on Valentine's Day)
+            </p>
+        </div>
+
+    </div>
+
+    <!-- AUDIO ELEMENT (Optional sound) -->
+    <audio id="success-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3"></audio>
+
+    <script>
+        // --- LOGIC ---
+        
+        let yesScale = 1;
+        const messages = [
+            "Nice try", 
+            "Too slow!", 
+            "Oops!", 
+            "Missed me!", 
+            "Don't be mean", 
+            "Really?", 
+            "Error 404: No found",
+            "Try the Green button"
+        ];
+
+        function nextStep(stepNumber) {
+            // Hide all steps
+            document.querySelectorAll('[id^="step-"]').forEach(el => el.classList.add('hidden'));
+            
+            // Show requested step
+            const nextEl = document.getElementById(`step-${stepNumber}`);
+            nextEl.classList.remove('hidden');
+            nextEl.classList.add('shake'); // Add entry animation
+            setTimeout(() => nextEl.classList.remove('shake'), 500);
+
+            // Special handling for Step 4 (Celebration)
+            if (stepNumber === 4) {
+                celebrate();
+            }
+        }
+
+        function toggleAgreeButton() {
+            const checkbox = document.getElementById('agree-check');
+            const btn = document.getElementById('agree-btn');
+            
+            if (checkbox.checked) {
+                btn.disabled = false;
+                btn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                btn.classList.add('bg-rose-500', 'text-white', 'hover:bg-rose-600', 'hover:scale-105', 'shadow-lg');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                btn.classList.remove('bg-rose-500', 'text-white', 'hover:bg-rose-600', 'hover:scale-105', 'shadow-lg');
+            }
+        }
+
+        function moveButton() {
+            const btn = document.getElementById('no-btn');
+            const yesBtn = document.getElementById('yes-btn');
+            const status = document.getElementById('annoy-status');
+
+            // 1. Move the No button randomly
+            const x = Math.random() * 200 - 100; // -100 to 100
+            const y = Math.random() * 200 - 100; // -100 to 100
+            
+            btn.style.transform = `translate(${x}px, ${y}px)`;
+            
+            // 2. Change text
+            const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+            btn.innerText = randomMsg;
+
+            // 3. Make YES button bigger
+            yesScale += 0.1;
+            yesBtn.style.transform = `scale(${yesScale})`;
+
+            // 4. Update status text
+            status.innerText = "Wow, you're really trying to click no...";
+        }
+
+        // --- VISUALS ---
+
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('floating-heart');
+            heart.innerHTML = '❤️';
+            heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.fontSize = (Math.random() * 20 + 10) + 'px';
+            heart.style.animationDuration = (Math.random() * 3 + 3) + 's';
+            
+            document.getElementById('hearts-container').appendChild(heart);
+            
+            setTimeout(() => {
+                heart.remove();
+            }, 6000);
+        }
+
+        // Create hearts periodically
+        setInterval(createHeart, 500);
+
+        function celebrate() {
+            // Simple Confetti explosion using canvas
+            const end = Date.now() + 15 * 1000;
+            const colors = ['#ec4899', '#f43f5e', '#ffffff'];
+
+            (function frame() {
+                // We'll just simulate confetti by spawning lots of hearts rapidly
+                for(let i=0; i<5; i++) {
+                    const heart = document.createElement('div');
+                    heart.innerHTML = ['❤️', '🌹', '✨', '💖'][Math.floor(Math.random()*4)];
+                    heart.style.position = 'absolute';
+                    heart.style.left = Math.random() * 100 + 'vw';
+                    heart.style.top = '-10px';
+                    heart.style.fontSize = '24px';
+                    heart.style.transition = 'top 3s ease-in, opacity 3s ease-in';
+                    heart.style.zIndex = '50';
+                    document.body.appendChild(heart);
+
+                    setTimeout(() => {
+                        heart.style.top = '110vh';
+                        heart.style.opacity = '0';
+                    }, 100);
+                    setTimeout(() => heart.remove(), 3000);
+                }
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+    </script>
+</body>
+</html>
