@@ -414,8 +414,8 @@ if (isHeic(name, mime)) {
 
   function basename(p){ return p.split('/').pop(); }
 
-  // --- Merge to one PDF ---
-mergeBtn.addEventListener('click', async ()=>{
+ // --- Merge to one PDF ---
+mergeBtn.addEventListener('click', async () => {
   mergeBtn.disabled = true;
   mergeBtn.textContent = 'Merging…';
 
@@ -433,7 +433,12 @@ mergeBtn.addEventListener('click', async ()=>{
     /* Add PDFs once */
     for (const item of state.items) {
       if (item.type === 'pdf') {
-        const src = await PDFLib.PDFDocument.load(item.buffer, { ignoreEncryption: true });
+        // FIX 1: Wrap buffer in new Uint8Array() to prevent "instance of undefined" error
+        // FIX 2: Keep { ignoreEncryption: true } for secured files
+        const src = await PDFLib.PDFDocument.load(new Uint8Array(item.buffer), { 
+          ignoreEncryption: true 
+        });
+        
         const pages = await outPdf.copyPages(src, src.getPageIndices());
         pages.forEach(p => outPdf.addPage(p));
       } else if (item.type === 'image') {
@@ -449,9 +454,14 @@ mergeBtn.addEventListener('click', async ()=>{
       for (let j = 0; j < batch.length; j++) {
         const item = batch[j];
         const isPng = item.mime.includes('png') || extFromName(item.name) === 'png';
-        const img = isPng
-          ? await outPdf.embedPng(item.buffer)
-          : await outPdf.embedJpg(item.buffer);
+        
+        // It is good practice to wrap these in Uint8Array as well
+        let img;
+        if (isPng) {
+            img = await outPdf.embedPng(new Uint8Array(item.buffer));
+        } else {
+            img = await outPdf.embedJpg(new Uint8Array(item.buffer));
+        }
 
         const col = j % cols;
         const row = Math.floor(j / cols);
@@ -470,7 +480,6 @@ mergeBtn.addEventListener('click', async ()=>{
       }
     }
 
-    // ✅ SAVE MUST BE HERE
     const bytes = await outPdf.save();
     const blob = new Blob([bytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
@@ -492,7 +501,6 @@ mergeBtn.addEventListener('click', async ()=>{
     mergeBtn.disabled = state.items.length === 0;
   }
 });
-
 
   // --- Wire up ---
   wireDropZone(dropEl, fileInput);
