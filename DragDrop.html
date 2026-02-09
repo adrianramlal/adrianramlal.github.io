@@ -414,7 +414,7 @@ if (isHeic(name, mime)) {
 
   function basename(p){ return p.split('/').pop(); }
 
- // --- Merge to one PDF ---
+// --- Merge to one PDF ---
 mergeBtn.addEventListener('click', async () => {
   mergeBtn.disabled = true;
   mergeBtn.textContent = 'Merging…';
@@ -430,11 +430,10 @@ mergeBtn.addEventListener('click', async () => {
     const outPdf = await PDFLib.PDFDocument.create();
     const imageItems = [];
 
-    /* Add PDFs once */
+    // 1. Process PDFs
     for (const item of state.items) {
       if (item.type === 'pdf') {
-        // FIX 1: Wrap buffer in new Uint8Array() to prevent "instance of undefined" error
-        // FIX 2: Keep { ignoreEncryption: true } for secured files
+        // FIX: Wrap buffer in Uint8Array and ignore encryption
         const src = await PDFLib.PDFDocument.load(new Uint8Array(item.buffer), { 
           ignoreEncryption: true 
         });
@@ -446,7 +445,7 @@ mergeBtn.addEventListener('click', async () => {
       }
     }
 
-    /* Batch images */
+    // 2. Process Images
     for (let i = 0; i < imageItems.length; i += imagesPerPage) {
       const batch = imageItems.slice(i, i + imagesPerPage);
       const page = outPdf.addPage([A4.w, A4.h]);
@@ -455,8 +454,8 @@ mergeBtn.addEventListener('click', async () => {
         const item = batch[j];
         const isPng = item.mime.includes('png') || extFromName(item.name) === 'png';
         
-        // It is good practice to wrap these in Uint8Array as well
         let img;
+        // FIX: Wrap image buffers in Uint8Array as well
         if (isPng) {
             img = await outPdf.embedPng(new Uint8Array(item.buffer));
         } else {
@@ -466,20 +465,18 @@ mergeBtn.addEventListener('click', async () => {
         const col = j % cols;
         const row = Math.floor(j / cols);
 
-        const x = margin + col * cellW;
-        const y = A4.h - margin - (row + 1) * cellH;
-
+        // Calculate position
         const scale = Math.min(cellW / img.width, cellH / img.height);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        const x = margin + col * cellW + (cellW - w) / 2;
+        const y = A4.h - margin - (row + 1) * cellH + (cellH - h) / 2;
 
-        page.drawImage(img, {
-          x: x + (cellW - img.width * scale) / 2,
-          y: y + (cellH - img.height * scale) / 2,
-          width: img.width * scale,
-          height: img.height * scale
-        });
+        page.drawImage(img, { x, y, width: w, height: h });
       }
     }
 
+    // 3. Save and Download
     const bytes = await outPdf.save();
     const blob = new Blob([bytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
@@ -497,6 +494,7 @@ mergeBtn.addEventListener('click', async () => {
   } catch (err) {
     console.error(err);
     alert('Failed to merge: ' + err.message);
+    mergeBtn.textContent = 'Merge → Download PDF'; // Reset button text on error
   } finally {
     mergeBtn.disabled = state.items.length === 0;
   }
