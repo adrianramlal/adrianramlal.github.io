@@ -433,7 +433,7 @@ mergeBtn.addEventListener('click', async ()=>{
     /* Add PDFs once */
     for (const item of state.items) {
       if (item.type === 'pdf') {
-        const src = await PDFLib.PDFDocument.load(item.buffer);
+        const src = await PDFLib.PDFDocument.load(item.buffer, { ignoreEncryption: true });
         const pages = await outPdf.copyPages(src, src.getPageIndices());
         pages.forEach(p => outPdf.addPage(p));
       } else if (item.type === 'image') {
